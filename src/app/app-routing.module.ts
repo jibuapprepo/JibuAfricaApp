@@ -114,9 +114,9 @@ export function buildRegExpUrlMatcher(regexp: RegExp): UrlMatcher {
         }
 
         const [consumedSegments, consumedPath] = segments.slice(1).reduce(
-            ([segments, path], segment) => path === match
-                ? [segments, path]
-                : [segments.concat(segment), `${path}/${segment.path}`],
+            ([segmentsAcc, pathAcc], segment) => pathAcc === match
+                ? [segmentsAcc, pathAcc]
+                : [segmentsAcc.concat(segment), `${pathAcc}/${segment.path}`],
             [[segments[0]] as UrlSegment[], segments[0].path],
         );
 
@@ -206,7 +206,6 @@ export const MAIN_ROUTES: Routes = [
         loadComponent: () =>
             import('src/core/features/jibu/jibu.page').then(m => m.JibuPage),
     },
-    // keep other Moodle routes here later (login, dashboard, etc.)
 ];
 
 /**
@@ -222,6 +221,7 @@ export const MAIN_ROUTES: Routes = [
     ],
 })
 export class AppRoutingModule {
+
     static forChild(routes: Routes): ModuleWithProviders<AppRoutingModule> {
         return {
             ngModule: AppRoutingModule,
@@ -230,4 +230,5 @@ export class AppRoutingModule {
             ],
         };
     }
+
 }
