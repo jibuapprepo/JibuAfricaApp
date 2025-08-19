@@ -6,8 +6,8 @@
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -40,21 +40,13 @@ function buildAppRoutes(injector: Injector): Routes {
 
 /**
  * Create a url matcher that will only match when a given condition is met.
- *
- * @param pathOrMatcher Original path or matcher configured in the route.
- * @param condition Condition.
- * @returns Conditional url matcher.
  */
 function buildConditionalUrlMatcher(pathOrMatcher: string | UrlMatcher, condition: () => boolean): UrlMatcher {
-    // Create a matcher based on Angular's default matcher.
-    // see https://github.com/angular/angular/blob/10.0.x/packages/router/src/shared.ts#L127
     return (segments: UrlSegment[], segmentGroup: UrlSegmentGroup, route: Route): UrlMatchResult | null => {
-        // If the condition isn't met, the route will never match.
         if (!condition()) {
             return null;
         }
 
-        // Use existing matcher if any.
         if (typeof pathOrMatcher === 'function') {
             return pathOrMatcher(segments, segmentGroup, route);
         }
@@ -64,22 +56,18 @@ function buildConditionalUrlMatcher(pathOrMatcher: string | UrlMatcher, conditio
         const isFullMatch = route.pathMatch === 'full';
         const posParams: Record<string, UrlSegment> = {};
 
-        // The path matches anything.
         if (path === '') {
             return (!isFullMatch || segments.length === 0) ? { consumed: [] } : null;
         }
 
-        // The actual URL is shorter than the config, no match.
         if (parts.length > segments.length) {
             return null;
         }
 
-        // The config is longer than the actual URL but we are looking for a full match, return null.
         if (isFullMatch && (segmentGroup.hasChildren() || parts.length < segments.length)) {
             return null;
         }
 
-        // Check each config part against the actual URL.
         for (let index = 0; index < parts.length; index++) {
             const part = parts[index];
             const segment = segments[index];
@@ -88,45 +76,32 @@ function buildConditionalUrlMatcher(pathOrMatcher: string | UrlMatcher, conditio
             if (isParameter) {
                 posParams[part.substring(1)] = segment;
             } else if (part !== segment.path) {
-                // The actual URL part does not match the config, no match.
                 return null;
             }
         }
 
-        // Return consumed segments with params.
         return { consumed: segments.slice(0, parts.length), posParams };
     };
 }
 
 /**
- * Type to declare lazy route modules. Extracted from Angular's LoadChildrenCallback type.
- *
- * @deprecated since 5.0. Now pages are loaded using the loadComponent property. You can use LazyDefaultStandaloneComponent instead.
+ * Type to declare lazy route modules.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type LazyRoutesModule = Type<any> |
     Routes |
-    Observable<Type<any> | // eslint-disable-line @typescript-eslint/no-explicit-any
-    Routes |
-    DefaultExport<Type<any>> | // eslint-disable-line @typescript-eslint/no-explicit-any
-    DefaultExport<Routes>> |
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Promise<Type<any> | Routes | DefaultExport<Type<any>> |DefaultExport<Routes>>;
+    Observable<Type<any> | Routes | DefaultExport<Type<any>> | DefaultExport<Routes>> |
+    Promise<Type<any> | Routes | DefaultExport<Type<any>> | DefaultExport<Routes>>;
 
 /**
- * Type to declare lazy standalone component. Extracted from Angular's LoadComponent type with default class.
+ * Type to declare lazy standalone component.
  */
 export type LazyDefaultStandaloneComponent = Promise<DefaultExport<Type<unknown>>>;
 
 /**
  * Build url matcher using a regular expression.
- *
- * @param regexp Regular expression.
- * @returns Url matcher.
  */
 export function buildRegExpUrlMatcher(regexp: RegExp): UrlMatcher {
     return (segments: UrlSegment[]): UrlMatchResult | null => {
-        // Ignore empty paths.
         if (segments.length === 0) {
             return null;
         }
@@ -134,18 +109,16 @@ export function buildRegExpUrlMatcher(regexp: RegExp): UrlMatcher {
         const path = segments.map(segment => segment.path).join('/');
         const match = regexp.exec(path)?.[0];
 
-        // Ignore paths that don't match the start of the url.
         if (!match || !path.startsWith(match)) {
             return null;
         }
 
-        // Consume segments that match.
-        const [consumedSegments, consumedPath] = segments.slice(1).reduce(([segments, path], segment) => path === match
-            ? [segments, path]
-            : [
-                segments.concat(segment),
-                `${path}/${segment.path}`,
-            ], [[segments[0]] as UrlSegment[], segments[0].path]);
+        const [consumedSegments, consumedPath] = segments.slice(1).reduce(
+            ([segments, path], segment) => path === match
+                ? [segments, path]
+                : [segments.concat(segment), `${path}/${segment.path}`],
+            [[segments[0]] as UrlSegment[], segments[0].path],
+        );
 
         if (consumedPath !== match) {
             return null;
@@ -160,14 +133,9 @@ export type ModuleRoutesConfig = Routes | Partial<ModuleRoutes>;
 
 /**
  * Configure routes so that they'll only match when a given condition is met.
- *
- * @param routes Routes.
- * @param condition Condition to determine if routes should be activated or not.
- * @returns Conditional routes.
  */
 export function conditionalRoutes(routes: Routes, condition: () => boolean): Routes {
     return routes.map(route => {
-        // We need to remove the path from the route because Angular doesn't call the matcher for empty paths.
         const { path, matcher, ...newRoute } = route;
         const matcherOrPath = matcher ?? path;
 
@@ -184,9 +152,6 @@ export function conditionalRoutes(routes: Routes, condition: () => boolean): Rou
 
 /**
  * Check whether a route does not have any content.
- *
- * @param route Route.
- * @returns Whether the route doesn't have any content.
  */
 export function isEmptyRoute(route: Route): boolean {
     return !('component' in route)
@@ -198,10 +163,6 @@ export function isEmptyRoute(route: Route): boolean {
 
 /**
  * Resolve module routes.
- *
- * @param injector Module injector.
- * @param token Routes injection token.
- * @returns Routes.
  */
 export function resolveModuleRoutes(injector: Injector, token: InjectionToken<ModuleRoutesConfig[]>): ModuleRoutes {
     if (modulesRoutes.has(token)) {
@@ -236,6 +197,19 @@ export function resolveModuleRoutes(injector: Injector, token: InjectionToken<Mo
 export const APP_ROUTES = new InjectionToken('APP_ROUTES');
 
 /**
+ * 🚀 Main application routes.
+ * This makes JibuPage the first page shown at app launch.
+ */
+export const MAIN_ROUTES: Routes = [
+    {
+        path: '',
+        loadComponent: () =>
+            import('src/core/features/jibu/jibu.page').then(m => m.JibuPage),
+    },
+    // keep other Moodle routes here later (login, dashboard, etc.)
+];
+
+/**
  * Module used to register routes at the root of the application.
  */
 @NgModule({
@@ -244,10 +218,10 @@ export const APP_ROUTES = new InjectionToken('APP_ROUTES');
     ],
     providers: [
         { provide: ROUTES, multi: true, useFactory: buildAppRoutes, deps: [Injector] },
+        { provide: APP_ROUTES, multi: true, useValue: MAIN_ROUTES },
     ],
 })
 export class AppRoutingModule {
-
     static forChild(routes: Routes): ModuleWithProviders<AppRoutingModule> {
         return {
             ngModule: AppRoutingModule,
@@ -256,5 +230,4 @@ export class AppRoutingModule {
             ],
         };
     }
-
 }
