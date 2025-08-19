@@ -12,6 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { APP_INITIALIZER, NgModule, Type } from '@angular/core';
+import { Routes } from '@angular/router';
+
+import { AppRoutingModule } from '@/app/app-routing.module';
+import { CoreLoginHelper } from './services/login-helper';
+import { redirectGuard } from '@guards/redirect';
+import { CoreLoginCronHandler } from './services/handlers/cron';
+import { CoreCronDelegate } from '@services/cron';
+import { CoreEvents } from '@singletons/events';
+import { hasSitesGuard } from './guards/has-sites';
+
+/**
+ * Get login services.
+ *
+ * @returns Returns login services.
+ */
+
 import {
   InjectionToken,
   Injector,
