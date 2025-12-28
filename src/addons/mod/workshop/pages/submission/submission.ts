@@ -136,7 +136,7 @@ export default class AddonModWorkshopSubmissionPage implements OnInit, OnDestroy
         this.siteId = CoreSites.getCurrentSiteId();
 
         this.feedbackForm = new FormGroup({});
-        this.feedbackForm.addControl('published', this.fb.control(''));
+        this.feedbackForm.addControl('published', this.fb.control(false));
         this.feedbackForm.addControl('grade', this.fb.control(''));
         this.feedbackForm.addControl('text', this.fb.control(''));
 
@@ -193,7 +193,7 @@ export default class AddonModWorkshopSubmissionPage implements OnInit, OnDestroy
      * @returns Resolved if we can leave it, rejected if not.
      */
     async canLeave(): Promise<boolean> {
-        const assessmentHasChanged = this.assessmentStrategy?.hasDataChanged();
+        const assessmentHasChanged = await this.assessmentStrategy?.hasDataChanged();
         if (this.forceLeave || (!this.hasEvaluationChanged() && !assessmentHasChanged)) {
             return true;
         }
@@ -202,6 +202,7 @@ export default class AddonModWorkshopSubmissionPage implements OnInit, OnDestroy
         await CoreAlerts.confirmLeaveWithChanges();
 
         CoreForms.triggerFormCancelledEvent(this.formElement, this.siteId);
+        CoreForms.triggerFormCancelledEvent(this.assessmentStrategy?.formElement, this.siteId);
 
         return true;
     }
@@ -457,15 +458,15 @@ export default class AddonModWorkshopSubmissionPage implements OnInit, OnDestroy
 
         const inputData = this.feedbackForm.value;
 
-        if (this.originalEvaluation.published != inputData.published) {
+        if (this.originalEvaluation.published !== inputData.published) {
             return true;
         }
 
-        if (this.originalEvaluation.text != inputData.text) {
+        if ((this.originalEvaluation.text ?? '') !== (inputData.text ?? '')) {
             return true;
         }
 
-        if (this.originalEvaluation.grade != inputData.grade) {
+        if (this.originalEvaluation.grade !== inputData.grade) {
             return true;
         }
 
@@ -521,9 +522,10 @@ export default class AddonModWorkshopSubmissionPage implements OnInit, OnDestroy
      * Save the assessment.
      */
     async saveAssessment(): Promise<void> {
-        if (this.assessmentStrategy?.hasDataChanged()) {
+        const assessmentHasChanged = await this.assessmentStrategy?.hasDataChanged();
+        if (assessmentHasChanged) {
             try {
-                await this.assessmentStrategy.saveAssessment();
+                await this.assessmentStrategy?.saveAssessment();
                 this.forceLeavePage();
             } catch {
                 // Error, stay on the page.

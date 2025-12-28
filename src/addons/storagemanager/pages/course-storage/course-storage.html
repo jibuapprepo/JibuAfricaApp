@@ -21,6 +21,8 @@
                 <ion-card-title>
                     <core-format-text [text]="title" contextLevel="course" [contextInstanceId]="courseId" [adaptImg]="false" />
                 </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
                 <ion-item class="size ion-text-wrap ion-no-padding">
                     <ion-label>
                         <p class="item-heading ion-text-wrap">{{ 'addon.storagemanager.totaldownloads' | translate }}</p>
@@ -42,7 +44,7 @@
                         { name: title }" />
                     {{ 'addon.storagemanager.deleteall' | translate }}
                 </ion-button>
-            </ion-card-header>
+            </ion-card-content>
         </ion-card>
 
         <ng-container *ngFor="let section of sections">
@@ -98,11 +100,8 @@
                             [attr.aria-label]="'addon.storagemanager.deletedatafrom' | translate: { name: section.name }" />
                     </ion-button>
                 </div>
-                @if (section.expanded) {
-                    <ion-icon slot="start" size="small" name="fas-chevron-down" aria-hidden="true" />
-                } @else {
-                    <ion-icon slot="start" size="small" name="fas-chevron-right" aria-hidden="true" />
-                }
+                <ion-icon name="fas-chevron-right" flip-rtl slot="start" aria-hidden="true" class="expandable-status-icon"
+                    [class.expandable-status-icon-expanded]="section.expanded" />
             </ion-item>
             <ion-ripple-effect />
         </div>
@@ -112,15 +111,16 @@
                     @if (!isModule(modOrSubsection)) {
                         <ng-container *ngTemplateOutlet="sectionCard; context: { section: modOrSubsection }" />
                     } @else {
-                        <ion-item class="core-course-storage-activity"
-                            *ngIf="downloadEnabled || (!modOrSubsection.calculatingSize && modOrSubsection.totalSize > 0)">
+                        <ion-item class="core-course-storage-activity" *ngIf="modOrSubsection.handlerData &&
+                            modOrSubsection.visibleoncoursepage !== 0 &&
+                            (downloadEnabled || (!modOrSubsection.calculatingSize && modOrSubsection.totalSize > 0))">
                             <core-mod-icon slot="start" *ngIf="modOrSubsection.handlerData.icon"
                                 [modicon]="modOrSubsection.handlerData.icon" [modname]="modOrSubsection.modname"
                                 [componentId]="modOrSubsection.instance" [fallbackTranslation]="modOrSubsection.modplural"
                                 [isBranded]="modOrSubsection.branded" />
                             <ion-label class="ion-text-wrap">
                                 <p class="item-heading {{modOrSubsection.handlerData!.class}} addon-storagemanager-module-size">
-                                    <core-format-text [text]="modOrSubsection.handlerData.title" [courseId]="modOrSubsection.course"
+                                    <core-format-text [text]="modOrSubsection.name" [courseId]="modOrSubsection.course"
                                         contextLevel="module" [contextInstanceId]="modOrSubsection.id" [adaptImg]="false" />
                                 </p>
                                 <ion-badge [color]="modOrSubsection.downloadStatus === statusDownloaded ? 'success' : 'light'"
