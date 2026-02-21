@@ -575,7 +575,7 @@ export class AddonModQuizProvider {
         const questions = CoreQuestion.parseQuestions(response.questions);
 
         if (options.loadLocal) {
-            return AddonModQuizOffline.loadQuestionsLocalStates(attemptId, questions, site.getId());
+            await AddonModQuizOffline.loadQuestionsLocalStates(attemptId, questions, site.getId());
         }
 
         return questions;
@@ -835,7 +835,7 @@ export class AddonModQuizProvider {
         );
 
         // Search the quiz.
-        return CoreCourseModuleHelper.getActivityByCmId(response.quizzes, value);
+        return CoreCourseModuleHelper.getActivityByField(response.quizzes, key, value);
     }
 
     /**

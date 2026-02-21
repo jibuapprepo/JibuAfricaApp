@@ -56,8 +56,7 @@ import { CoreContentLinksHelper } from '@features/contentlinks/services/contentl
 @Component({
     selector: 'page-addon-mod-feedback-form',
     templateUrl: 'form.html',
-    styleUrl: 'form.scss',
-    standalone: true,
+    styleUrls: ['../../feedback.scss', 'form.scss'],
     imports: [
         CoreSharedModule,
     ],
@@ -395,6 +394,8 @@ export default class AddonModFeedbackFormPage implements OnInit, OnDestroy, CanL
                     readingStrategy: this.offline ? CoreSitesReadingStrategy.PREFER_CACHE : CoreSitesReadingStrategy.ONLY_NETWORK,
                     siteId: this.currentSite.getId(),
                 });
+
+                CoreCourse.checkModuleCompletion(this.courseId, this.module?.completiondata);
             } else if (typeof response.jumpto != 'number' || response.jumpto == this.currentPage) {
                 // Errors on questions, stay in page.
             } else {

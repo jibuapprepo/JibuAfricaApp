@@ -33,7 +33,6 @@ import { CoreSearchBoxComponent } from '../../../search/components/search-box/se
 @Component({
     selector: 'page-core-user-participants',
     templateUrl: 'participants.html',
-    standalone: true,
     imports: [
         CoreSharedModule,
         CoreSearchBoxComponent,
@@ -70,7 +69,7 @@ export default class CoreUserParticipantsPage implements OnInit, AfterViewInit, 
      * @inheritdoc
      */
     async ngOnInit(): Promise<void> {
-        this.searchEnabled = await CoreUser.canSearchParticipantsInSite();
+        this.searchEnabled = CoreUser.canSearchParticipantsInSite();
     }
 
     /**
@@ -202,14 +201,14 @@ class CoreUserParticipantsManager
      * @inheritdoc
      */
     protected async logActivity(): Promise<void> {
-        await CorePromiseUtils.ignoreErrors(CoreUser.logParticipantsView(this.getSource().COURSE_ID));
+        await CorePromiseUtils.ignoreErrors(CoreUser.logParticipantsView(this.getSource().courseId));
 
         CoreAnalytics.logEvent({
             type: CoreAnalyticsEventType.VIEW_ITEM_LIST,
             ws: 'core_user_view_user_list',
             name: Translate.instant('core.user.participants'),
-            data: { courseid: this.getSource().COURSE_ID, category: 'user' },
-            url: `/user/index.php?id=${this.getSource().COURSE_ID}`,
+            data: { courseid: this.getSource().courseId, category: 'user' },
+            url: `/user/index.php?id=${this.getSource().courseId}`,
         });
     }
 

@@ -55,7 +55,6 @@ import { CoreSharedModule } from '@/core/shared.module';
 @Component({
     selector: 'addon-mod-workshop-assessment-strategy',
     templateUrl: 'addon-mod-workshop-assessment-strategy.html',
-    standalone: true,
     imports: [
         CoreSharedModule,
         CoreEditorRichTextEditorComponent,
@@ -168,8 +167,6 @@ export class AddonModWorkshopAssessmentStrategyComponent implements OnInit, OnDe
 
     /**
      * Convenience function to load the assessment data.
-     *
-     * @returns Promised resvoled when data is loaded.
      */
     protected async load(): Promise<void> {
         this.data.assessment = await AddonModWorkshopHelper.getReviewerAssessmentById(this.workshop.id, this.assessmentId, {
@@ -214,7 +211,10 @@ export class AddonModWorkshopAssessmentStrategyComponent implements OnInit, OnDe
                 this.hasOffline = false;
                 // Ignore errors.
             } finally {
-                this.feedbackText = this.data.assessment.feedbackauthor;
+                this.feedbackText = CoreFileHelper.replacePluginfileUrls(
+                    this.data.assessment.feedbackauthor,
+                    this.data.assessment.feedbackcontentfiles,
+                );
                 this.feedbackControl.setValue(this.feedbackText);
 
                 this.originalData.text = this.data.assessment.feedbackauthor;
@@ -265,7 +265,7 @@ export class AddonModWorkshopAssessmentStrategyComponent implements OnInit, OnDe
      *
      * @returns True if data has changed.
      */
-    hasDataChanged(): boolean {
+    async hasDataChanged(): Promise<boolean> {
         if (!this.assessmentStrategyLoaded || !this.workshop.strategy || !this.edit) {
             return false;
         }
@@ -289,7 +289,7 @@ export class AddonModWorkshopAssessmentStrategyComponent implements OnInit, OnDe
             return true;
         }
 
-        return AddonWorkshopAssessmentStrategyDelegate.hasDataChanged(
+        return await AddonWorkshopAssessmentStrategyDelegate.hasDataChanged(
             this.workshop.strategy,
             this.originalData.selectedValues,
             this.data.selectedValues,
@@ -425,7 +425,7 @@ export class AddonModWorkshopAssessmentStrategyComponent implements OnInit, OnDe
     }
 
     /**
-     * Component destroyed.
+     * @inheritdoc
      */
     ngOnDestroy(): void {
         this.obsInvalidated?.off();

@@ -38,7 +38,7 @@ import { CoreSharedModule } from '@/core/shared.module';
 @Component({
     selector: 'page-addon-mod-feedback-attempt',
     templateUrl: 'attempt.html',
-    standalone: true,
+    styleUrl: '../../feedback.scss',
     imports: [
         CoreSharedModule,
     ],

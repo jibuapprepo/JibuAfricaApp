@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, effect } from '@angular/core';
 import { IonTabs } from '@ionic/angular';
 import { BackButtonEvent } from '@ionic/core';
 import { Subscription } from 'rxjs';
@@ -39,10 +39,12 @@ import {
     MAIN_MENU_MORE_PAGE_NAME,
     MAIN_MENU_HANDLER_BADGE_UPDATED_EVENT,
     MAIN_MENU_VISIBILITY_UPDATED_EVENT,
+    CoreMainMenuPlacement,
 } from '@features/mainmenu/constants';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreMainMenuUserButtonComponent } from '../../components/user-menu-button/user-menu-button';
 import { BackButtonPriority } from '@/core/constants';
+import { CoreKeyboard } from '@singletons/keyboard';
 
 const ANIMATION_DURATION = 500;
 
@@ -73,7 +75,6 @@ const ANIMATION_DURATION = 500;
         ]),
     ],
     styleUrl: 'menu.scss',
-    standalone: true,
     imports: [
         CoreSharedModule,
         CoreMainMenuUserButtonComponent,
@@ -85,12 +86,13 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
     allHandlers?: CoreMainMenuHandlerToDisplay[];
     loaded = false;
     showTabs = false;
-    tabsPlacement: 'bottom' | 'side' = 'bottom';
+    tabsPlacement: CoreMainMenuPlacement = CoreMainMenuPlacement.BOTTOM;
     morePageName = MAIN_MENU_MORE_PAGE_NAME;
     selectedTab?: string;
     isMainScreen = false;
     moreBadge = false;
     visibility = 'hidden';
+    loadingTabsLength = this.getLoadingTabsLength();
 
     protected subscription?: Subscription;
     protected navSubscription?: Subscription;
@@ -118,6 +120,22 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
                 this.isMainScreen = !this.mainTabs?.outlet.canGoBack();
                 this.updateVisibility();
             });
+
+        if (CorePlatform.isIOS()) {
+            effect(() => {
+                const shown = CoreKeyboard.keyboardShownSignal();
+                // In iOS, the resize event is triggered before the keyboard is opened/closed and not triggered again once done.
+                // Init handlers again once keyboard is closed since the resize event doesn't have the updated height.
+                if (!shown) {
+                    this.updateHandlers();
+
+                    // If the device is slow it can take a bit more to update the window height. Retry in a few ms.
+                    setTimeout(() => {
+                        this.updateHandlers();
+                    }, 250);
+                }
+            });
+        }
     }
 
     /**
@@ -139,7 +157,7 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
         });
 
         this.badgeUpdateObserver = CoreEvents.on(MAIN_MENU_HANDLER_BADGE_UPDATED_EVENT, (data) => {
-            if (data.siteId == CoreSites.getCurrentSiteId()) {
+            if (data.siteId === CoreSites.getCurrentSiteId()) {
                 this.updateMoreBadge();
             }
         });
@@ -149,20 +167,6 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
         });
         document.addEventListener('ionBackButton', this.backButtonFunction);
 
-        if (CorePlatform.isIOS()) {
-            // In iOS, the resize event is triggered before the keyboard is opened/closed and not triggered again once done.
-            // Init handlers again once keyboard is closed since the resize event doesn't have the updated height.
-            this.keyboardObserver = CoreEvents.on(CoreEvents.KEYBOARD_CHANGE, (kbHeight: number) => {
-                if (kbHeight === 0) {
-                    this.updateHandlers();
-
-                    // If the device is slow it can take a bit more to update the window height. Retry in a few ms.
-                    setTimeout(() => {
-                        this.updateHandlers();
-                    }, 250);
-                }
-            });
-        }
         CoreEvents.trigger(CoreEvents.MAIN_HOME_LOADED);
     }
 
@@ -178,6 +182,8 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
         this.tabsPlacement = CoreMainMenu.getTabPlacement();
         this.updateVisibility();
 
+        this.loadingTabsLength = this.getLoadingTabsLength();
+
         const handlers = this.allHandlers
             .filter((handler) => !handler.onlyInMore)
             .slice(0, CoreMainMenu.getNumItems()); // Get main handlers.
@@ -189,7 +195,7 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
             const handler = handlers[i];
 
             // Check if the handler is already in the tabs list. If so, use it.
-            const tab = this.tabs.find((tab) => tab.page == handler.page);
+            const tab = this.tabs.find((tab) => tab.page === handler.page);
 
             tab ? tab.hide = false : null;
             handler.hide = false;
@@ -229,6 +235,16 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
                 params: tabPageParams,
             });
         }
+    }
+
+    /**
+     * Calculates the total number of loading placeholders to display in the main menu.
+     *
+     * @returns The total number of loading tabs to display.
+     */
+    protected getLoadingTabsLength(): number {
+        return CoreMainMenu.getNumItems() +
+            (this.tabsPlacement === CoreMainMenuPlacement.BOTTOM ? 1 : 2); // +1 for the "More" tab and user button.
     }
 
     /**
@@ -277,7 +293,7 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
             .slice(0, CoreMainMenu.getNumItems());
 
         // Use only the handlers that don't appear in the main view.
-        this.moreBadge = this.allHandlers.some((handler) => mainHandlers.indexOf(handler) == -1 && !!handler.badge);
+        this.moreBadge = this.allHandlers.some((handler) => mainHandlers.indexOf(handler) === -1 && !!handler.badge);
     }
 
     /**
@@ -307,7 +323,9 @@ export default class CoreMainMenuPage implements OnInit, OnDestroy {
      * Update menu visibility.
      */
     protected updateVisibility(): void {
-        const visibility = this.tabsPlacement == 'side' ? '' : (this.isMainScreen ? 'visible' : 'hidden');
+        const visibility = this.tabsPlacement === CoreMainMenuPlacement.SIDE
+            ? ''
+            : (this.isMainScreen ? 'visible' : 'hidden');
 
         if (visibility === this.visibility) {
             return;
@@ -406,7 +424,7 @@ class CoreMainMenuRoleTab extends CoreAriaRoleTab<CoreMainMenuPage> {
      * @inheritdoc
      */
     isHorizontal(): boolean {
-        return this.componentInstance.tabsPlacement == 'bottom';
+        return this.componentInstance.tabsPlacement === CoreMainMenuPlacement.BOTTOM;
     }
 
     /**

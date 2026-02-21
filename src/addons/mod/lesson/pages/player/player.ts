@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef, ElementRef, inject } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { IonContent } from '@ionic/angular';
 import { CoreError } from '@classes/errors/error';
@@ -67,7 +67,6 @@ import { CoreSharedModule } from '@/core/shared.module';
     selector: 'page-addon-mod-lesson-player',
     templateUrl: 'player.html',
     styleUrl: 'player.scss',
-    standalone: true,
     imports: [
         CoreSharedModule,
         CoreEditorRichTextEditorComponent,
@@ -79,7 +78,7 @@ export default class AddonModLessonPlayerPage implements OnInit, OnDestroy, CanL
     @ViewChild('questionFormEl') formElement?: ElementRef;
 
     component = ADDON_MOD_LESSON_COMPONENT_LEGACY;
-    readonly LESSON_EOL = AddonModLessonJumpTo.EOL;
+    lessonEol = AddonModLessonJumpTo.EOL;
     questionForm?: FormGroup; // The FormGroup for question pages.
     title?: string; // The page title.
     lesson?: AddonModLessonLessonWSData; // The lesson object.
@@ -117,13 +116,9 @@ export default class AddonModLessonPlayerPage implements OnInit, OnDestroy, CanL
     protected jumps?: AddonModLessonPossibleJumps; // All possible jumps.
     protected firstPageLoaded?: boolean; // Whether the first page has been loaded.
     protected retakeToReview?: number; // Retake to review.
-    protected menuShown = false; // Whether menu is shown.
-
-    constructor(
-        protected changeDetector: ChangeDetectorRef,
-        protected formBuilder: FormBuilder,
-    ) {
-    }
+    protected menuShown = false;
+    protected changeDetector = inject(ChangeDetectorRef);
+    protected formBuilder = inject(FormBuilder);
 
     /**
      * @inheritdoc
@@ -356,8 +351,8 @@ export default class AddonModLessonPlayerPage implements OnInit, OnDestroy, CanL
             await Promise.all(promises);
 
             this.mediaFile = this.lesson.mediafiles?.[0];
-            this.lessonWidth = this.lesson.slideshow ? CoreDom.formatSizeUnits(this.lesson.mediawidth!) : '';
-            this.lessonHeight = this.lesson.slideshow ? CoreDom.formatSizeUnits(this.lesson.mediaheight!) : '';
+            this.lessonWidth = this.lesson.slideshow ? CoreDom.formatSizeUnits(this.lesson.width ?? '100%') : '';
+            this.lessonHeight = this.lesson.slideshow ? CoreDom.formatSizeUnits(this.lesson.height ?? '100%') : '';
 
             await this.launchRetake(this.currentPage);
 

@@ -20,13 +20,14 @@ import {
     ModResourceDisplay,
 } from '@addons/mod/constants';
 import { InjectionToken } from '@angular/core';
+import { CoreStorageTable } from '@services/storage';
 import { CoreBrowser } from '@singletons/browser';
 
 /**
  * Injection token used for dependencies marked as optional that will never
  * be resolved by Angular injectors.
  */
-export const NULL_INJECTION_TOKEN = new InjectionToken('null');
+export const NULL_INJECTION_TOKEN: InjectionToken<() => Promise<CoreStorageTable>> = new InjectionToken('null');
 
 /**
  * Context levels enumeration.
@@ -97,7 +98,8 @@ export const MOODLE_RELEASES = {
     '4.3': 2023100900,
     '4.4': 2024042200,
     '4.5': 2024100700,
-    '5.0': 2024100800, // @todo [5.0] replace with right value when released. Using a tmp value to be able to test new things.
+    '5.0': 2025041400,
+    '5.1': 2025050000, // @todo [5.1] replace with right value when released. Using a tmp value to be able to test new things.
 };
 
 /**
@@ -136,6 +138,9 @@ export class CoreConstants {
     static readonly NO_SITE_ID = 'NoSite';
 
     // Settings constants.
+    /**
+     * @deprecated since 5.0. Plain text area editor has been removed.
+     */
     static readonly SETTINGS_RICH_TEXT_EDITOR = 'CoreSettingsRichTextEditor';
     static readonly SETTINGS_NOTIFICATION_SOUND = 'CoreSettingsNotificationSound';
     static readonly SETTINGS_SYNC_ONLY_ON_WIFI = 'CoreSettingsSyncOnlyOnWifi';
@@ -152,14 +157,6 @@ export class CoreConstants {
     static readonly WS_TIMEOUT_WIFI = 30000; // Timeout when in WiFi.
 
     // Login constants.
-    /**
-     * @deprecated since 4.3 Use TypeOfLogin.BROWSER instead.
-     */
-    static readonly LOGIN_SSO_CODE = 2; // SSO in browser window is required.
-    /**
-     * @deprecated since 4.3 Use TypeOfLogin.EMBEDDED instead.
-     */
-    static readonly LOGIN_SSO_INAPP_CODE = 3; // SSO in embedded browser is required.
     static readonly LOGIN_LAUNCH_DATA = 'CoreLoginLaunchData';
 
     // Download status constants.

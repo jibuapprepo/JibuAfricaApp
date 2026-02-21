@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, inject } from '@angular/core';
 import { FormControl, FormGroup, FormBuilder } from '@angular/forms';
 import { CoreError } from '@classes/errors/error';
 import { CoreCourse } from '@features/course/services/course';
@@ -35,6 +35,7 @@ import {
     ADDON_MOD_WIKI_COMPONENT_LEGACY,
     ADDON_MOD_WIKI_MODNAME,
     ADDON_MOD_WIKI_PAGE_CREATED_EVENT,
+    ADDON_MOD_WIKI_PAGE_CREATED_OFFLINE_EVENT,
     ADDON_MOD_WIKI_RENEW_LOCK_TIME,
 } from '../../constants';
 import { CoreLoadings } from '@services/overlays/loadings';
@@ -49,7 +50,6 @@ import { CoreSharedModule } from '@/core/shared.module';
 @Component({
     selector: 'page-addon-mod-wiki-edit',
     templateUrl: 'edit.html',
-    standalone: true,
     imports: [
         CoreSharedModule,
         CoreEditorRichTextEditorComponent,
@@ -86,10 +86,9 @@ export default class AddonModWikiEditPage implements OnInit, OnDestroy, CanLeave
     protected renewLockInterval?: number; // An interval to renew the lock every certain time.
     protected forceLeave = false; // To allow leaving the page without checking for changes.
     protected isDestroyed = false; // Whether the page has been destroyed.
+    protected formBuilder = inject(FormBuilder);
 
-    constructor(
-        protected formBuilder: FormBuilder,
-    ) {
+    constructor() {
         this.contentControl = this.formBuilder.control('', { nonNullable: true });
         this.pageForm = this.formBuilder.group({});
     }
@@ -435,6 +434,14 @@ export default class AddonModWikiEditPage implements OnInit, OnDestroy, CanLeave
 
             if (id <= 0) {
                 // Page stored in offline. Go to see the offline page.
+                CoreEvents.trigger(ADDON_MOD_WIKI_PAGE_CREATED_OFFLINE_EVENT, {
+                    wikiId: this.wikiId,
+                    subwikiId: this.subwikiId,
+                    userId: this.userId,
+                    groupId: this.groupId,
+                    pageTitle: title,
+                }, CoreSites.getCurrentSiteId());
+
                 return this.goToPage(title);
             }
 

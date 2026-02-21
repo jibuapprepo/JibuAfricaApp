@@ -14,7 +14,18 @@
 
 import { ContextLevel } from '@/core/constants';
 import { toBoolean } from '@/core/transforms/boolean';
-import { Component, Input, Output, OnInit, EventEmitter, ChangeDetectorRef, Type, ElementRef, ViewChild } from '@angular/core';
+import {
+    Component,
+    Input,
+    Output,
+    OnInit,
+    EventEmitter,
+    ChangeDetectorRef,
+    Type,
+    ElementRef,
+    ViewChild,
+    inject,
+} from '@angular/core';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CoreQuestionBehaviourDelegate } from '@features/question/services/behaviour-delegate';
 import { CoreQuestionDelegate } from '@features/question/services/question-delegate';
@@ -38,7 +49,6 @@ import { CoreSharedModule } from '@/core/shared.module';
     selector: 'core-question',
     templateUrl: 'core-question.html',
     styleUrl: '../../question.scss',
-    standalone: true,
     imports: [
         CoreSharedModule,
     ],
@@ -80,6 +90,9 @@ export class CoreQuestionComponent implements OnInit, AsyncDirective {
 
     protected logger: CoreLogger;
 
+    protected changeDetector = inject(ChangeDetectorRef);
+    protected element: HTMLElement = inject(ElementRef).nativeElement;
+
     get showQuestion(): boolean {
         return this.showQuestionPromise.isResolved();
     }
@@ -94,9 +107,9 @@ export class CoreQuestionComponent implements OnInit, AsyncDirective {
         return dynamicComponent.ready();
     }
 
-    constructor(protected changeDetector: ChangeDetectorRef, private element: ElementRef) {
+    constructor() {
         this.logger = CoreLogger.getInstance('CoreQuestionComponent');
-        CoreDirectivesRegistry.register(this.element.nativeElement, this);
+        CoreDirectivesRegistry.register(this.element, this);
     }
 
     /**
@@ -170,6 +183,7 @@ export class CoreQuestionComponent implements OnInit, AsyncDirective {
         // Load local answers if offline is enabled.
         if (this.offlineEnabled && this.component && this.attemptId) {
             await CoreQuestionHelper.loadLocalAnswers(this.question, this.component, this.attemptId);
+            await CoreQuestionHelper.loadLocalQuestionState(this.question,this.attemptId);
         } else {
             this.question.localAnswers = {};
         }
@@ -211,13 +225,15 @@ export class CoreQuestionComponent implements OnInit, AsyncDirective {
         // Load local answers if offline is enabled.
         if (this.offlineEnabled && this.component && this.attemptId) {
             if (this.question.localAnswers && !CoreObject.isEmpty(this.question.localAnswers)) {
-                this.validationError = CoreQuestionDelegate.getValidationError(
-                    this.question,
-                    this.question.localAnswers,
-                    this.validationError,
-                    this.component,
-                    this.attemptId,
-                );
+                this.validationError = this.question.state === 'invalid'
+                    ? CoreQuestionDelegate.getValidationError(
+                        this.question,
+                        this.question.localAnswers,
+                        this.validationError,
+                        this.component,
+                        this.attemptId,
+                    )
+                    : '';
             }
         }
     }

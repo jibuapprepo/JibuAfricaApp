@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, Input, inject } from '@angular/core';
 import { MediaFile } from '@awesome-cordova-plugins/media-capture/ngx';
 
 import { CoreFile, CoreFileProvider } from '@services/file';
@@ -35,14 +35,13 @@ import { CoreSharedModule } from '@/core/shared.module';
     selector: 'core-emulator-capture-media',
     templateUrl: 'capture-media.html',
     styleUrl: 'capture-media.scss',
-    standalone: true,
     imports: [
         CoreSharedModule,
     ],
 })
 export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
 
-    @Input() type?: 'video' | 'image' | 'captureimage';
+    @Input({ required: true }) type?: 'video' | 'image' | 'captureimage';
     @Input() maxTime?: number; // Max time to capture.
     @Input() facingMode?: string; // Camera facing mode.
     @Input() mimetype?: string;
@@ -55,9 +54,8 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
     @ViewChild('imgCanvas') imgCanvas?: ElementRef;
     @ViewChild('previewImage') previewImage?: ElementRef;
 
-    title?: string; // The title of the page.
-    isVideo?: boolean; // Whether it should capture video.
-    isImage?: boolean; // Whether it should capture image.
+    title = 'core.captureimage'; // The title of the page.
+    isVideo = false; // Whether it should capture video.
     readyToCapture?: boolean; // Whether it's ready to capture.
     hasCaptured?: boolean; // Whether it has captured something.
     isCapturing?: boolean; // Whether it's capturing.
@@ -68,10 +66,7 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
     protected previewMedia?: HTMLVideoElement; // The element to preview the video captured.
     protected mediaBlob?: Blob; // A Blob where the captured data is stored.
     protected localMediaStream?: MediaStream;
-
-    constructor(
-        protected changeDetectorRef: ChangeDetectorRef,
-    ) {}
+    protected changeDetectorRef = inject(ChangeDetectorRef);
 
     /**
      * @inheritdoc
@@ -88,24 +83,23 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
         this.facingMode = this.facingMode || 'environment';
         this.quality = this.quality || 0.92;
 
-        if (this.type == 'captureimage') {
+        if (this.type === 'captureimage') {
             this.isCaptureImage = true;
             this.type = 'image';
         }
 
         // Initialize some data based on the type of media to capture.
-        if (this.type == 'video') {
+        if (this.type === 'video') {
             this.isVideo = true;
             this.title = 'core.capturevideo';
-        } else if (this.type == 'image') {
-            this.isImage = true;
+        } else if (this.type === 'image') {
+            this.isVideo = false;
             this.title = 'core.captureimage';
         }
     }
 
     /**
-     * Init HTML recorder for browser
-     * .
+     * Init HTML recorder for browser.
      *
      * @returns Promise resolved when done.
      */
@@ -120,10 +114,8 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
             let chunks: Blob[] = [];
             this.localMediaStream = stream;
 
-            if (!this.isImage) {
-                if (this.isVideo) {
-                    this.previewMedia = this.previewVideo?.nativeElement;
-                }
+            if (this.isVideo) {
+                this.previewMedia = this.previewVideo?.nativeElement;
 
                 this.mediaRecorder = new MediaRecorder(this.localMediaStream, { mimeType: this.mimetype });
 
@@ -143,13 +135,6 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
                         this.previewMedia.src = window.URL.createObjectURL(this.mediaBlob);
                     }
                 };
-            }
-
-            if (!this.isImage && !this.isVideo) {
-                // It's ready to capture.
-                this.readyToCapture = true;
-
-                return;
             }
 
             const streamVideo = this.streamVideo;
@@ -202,7 +187,7 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (!this.isImage) {
+        if (this.isVideo) {
             // Start the capture.
             this.isCapturing = true;
             this.resetChrono = false;
@@ -238,15 +223,6 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
      * User cancelled.
      */
     async cancel(): Promise<void> {
-        if (this.hasCaptured) {
-            try {
-                await CoreAlerts.confirmLeaveWithChanges();
-            } catch {
-                // Canceled.
-                return;
-            }
-        }
-
         // Send a "cancelled" error like the Cordova plugin does.
         this.dismissWithCanceledError('Canceled.', 'Camera cancelled');
     }
@@ -255,6 +231,13 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
      * Discard the captured media.
      */
     async discard(): Promise<void> {
+        try {
+            await CoreAlerts.confirmLeaveWithChanges();
+        } catch {
+            // Canceled.
+            return;
+        }
+
         this.previewMedia?.pause();
         this.streamVideo?.nativeElement.play();
 
@@ -281,7 +264,7 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
      * @param cameraMessage A specific message to use if it's a Camera capture. If not set, message will be used.
      */
     dismissWithCanceledError(message: string, cameraMessage?: string): void {
-        const isCamera = this.isImage && !this.isCaptureImage;
+        const isCamera = !this.isVideo && !this.isCaptureImage;
         const error = isCamera ? new CoreCanceledError(cameraMessage || message) : new CoreCaptureError(3, message);
 
         ModalController.dismiss(error, 'error');
@@ -295,7 +278,7 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
      * @param cameraMessage A specific message to use if it's a Camera capture. If not set, message will be used.
      */
     dismissWithError(code: number, message: string, cameraMessage?: string): void {
-        const isCamera = this.isImage && !this.isCaptureImage;
+        const isCamera = !this.isVideo && !this.isCaptureImage;
         const error = isCamera ? new CoreError(cameraMessage || message) : new CoreCaptureError(code, message);
 
         ModalController.dismiss(error, 'error');
@@ -330,7 +313,7 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
 
             const fileEntry = await CoreFile.writeFile(this.getFilePath(), this.mediaBlob);
 
-            if (this.isImage && !this.isCaptureImage) {
+            if (!this.isVideo && !this.isCaptureImage) {
                 this.dismissWithData(CoreFile.getFileEntryURL(fileEntry));
             } else {
                 // The capture plugin should return a MediaFile, not a FileEntry. Convert it.
@@ -354,8 +337,8 @@ export class CoreEmulatorCaptureMediaComponent implements OnInit, OnDestroy {
 
                 this.dismissWithData([mediaFile]);
             }
-        } catch (err) {
-            CoreAlerts.showError(err);
+        } catch (error) {
+            CoreAlerts.showError(error);
         } finally {
             loadingModal.dismiss();
         }

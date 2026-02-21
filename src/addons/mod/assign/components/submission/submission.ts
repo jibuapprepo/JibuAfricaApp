@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, Input, OnInit, Optional, ViewChildren, QueryList, OnDestroy } from '@angular/core';
+import { Component, Input, OnInit, ViewChildren, QueryList, OnDestroy, inject } from '@angular/core';
 import { CoreEventObserver, CoreEvents } from '@singletons/events';
 import { CoreSites } from '@services/sites';
 import {
@@ -34,7 +34,7 @@ import { CoreSplitViewComponent } from '@components/split-view/split-view';
 import { CoreGradesFormattedItem, CoreGradesHelper } from '@features/grades/services/grades-helper';
 import { AddonModAssignHelper, AddonModAssignSubmissionFormatted } from '../../services/assign-helper';
 import { Translate } from '@singletons';
-import { CoreCourse, CoreCourseModuleGradeInfo } from '@features/course/services/course';
+import { CoreCourse } from '@features/course/services/course';
 import { AddonModAssignOffline } from '../../services/assign-offline';
 import { CoreUser, CoreUserProfile } from '@features/user/services/user';
 import { CoreTime } from '@singletons/time';
@@ -73,7 +73,6 @@ import { CoreUtils } from '@singletons/utils';
     selector: 'addon-mod-assign-submission',
     templateUrl: 'addon-mod-assign-submission.html',
     styleUrl: 'submission.scss',
-    standalone: true,
     imports: [
         CoreSharedModule,
         AddonModAssignSubmissionPluginComponent,
@@ -124,7 +123,6 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
     unsupportedEditPlugins: string[] = []; // List of submission plugins that don't support edit.
 
     grader?: CoreUserProfile; // Profile of the teacher that graded the submission.
-    gradeInfo?: CoreCourseModuleGradeInfo; // Grade data for the assignment, retrieved from the server.
     canGrade = false; // Whether the user is grading.
     canSaveGrades = false; // Whether the user can save the grades.
     gradeUrl?: string; // URL to grade in browser.
@@ -145,12 +143,11 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
     protected previousAttempt?: AddonModAssignSubmissionPreviousAttempt; // The previous attempt.
     protected submissionStatusAvailable = false; // Whether we were able to retrieve the submission status.
     protected syncObserver: CoreEventObserver;
+    protected splitviewCtrl = inject(CoreSplitViewComponent, { optional: true });
 
     protected hasOfflineGrade = false;
 
-    constructor(
-        @Optional() protected splitviewCtrl: CoreSplitViewComponent,
-    ) {
+    constructor() {
         this.siteId = CoreSites.getCurrentSiteId();
         this.currentUserId = CoreSites.getCurrentSiteUserId();
 
@@ -571,10 +568,11 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
         try {
             const submission = await AddonModAssignOffline.getSubmission(this.assign.id, this.submitId);
 
-            this.removedOffline = submission && Object.keys(submission.plugindata).length == 0;
+            this.removedOffline = submission && Object.keys(submission.plugindata).length === 0 &&
+                (submission.submissionstatement === undefined || submission.submissionstatement === null);
             this.editedOffline = submission && !this.removedOffline;
             this.submittedOffline = !!submission?.submitted && !this.removedOffline;
-        } catch (error) {
+        } catch {
             // No offline data found.
             this.editedOffline = false;
             this.submittedOffline = false;
@@ -674,9 +672,14 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
         if (submissionGrade && (!feedback || !feedback.gradeddate || feedback.gradeddate < submissionGrade.timemodified)) {
             // If grade has been modified from gradebook, do not use offline.
             if (gradeModified < submissionGrade.timemodified) {
-                const gradeForDisplay = String(!this.gradeInfo?.scale
-                    ? CoreUtils.formatFloat(submissionGrade.grade)
-                    : submissionGrade.grade);
+                let gradeForDisplay: string;
+                if (gradeInfo.scale) {
+                    const scale = CoreUtils.makeMenuFromList(gradeInfo.scale, Translate.instant('core.nograde'), ',', -1);
+                    const scaleItem = scale.find(scaleItem => scaleItem.value === submissionGrade.grade);
+                    gradeForDisplay = scaleItem?.label ?? String(submissionGrade.grade);
+                } else {
+                    gradeForDisplay = CoreUtils.formatFloat(submissionGrade.grade);
+                }
 
                 if (!this.feedback) {
                     this.feedback = {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, inject } from '@angular/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { CoreCourse } from '@features/course/services/course';
 import { CoreGradesHelper, CoreGradesMenuItem } from '@features/grades/services/grades-helper';
@@ -57,7 +57,6 @@ import { CoreErrorHelper } from '@services/error-helper';
 @Component({
     selector: 'page-addon-mod-workshop-assessment-page',
     templateUrl: 'assessment.html',
-    standalone: true,
     imports: [
         CoreSharedModule,
         AddonModWorkshopAssessmentStrategyComponent,
@@ -108,10 +107,9 @@ export default class AddonModWorkshopAssessmentPage implements OnInit, OnDestroy
     protected currentUserId: number;
     protected forceLeave = false;
     protected logView: () => void;
+    protected fb = inject(FormBuilder);
 
-    constructor(
-        protected fb: FormBuilder,
-    ) {
+    constructor() {
         this.siteId = CoreSites.getCurrentSiteId();
         this.currentUserId = CoreSites.getCurrentSiteUserId();
 
@@ -343,16 +341,16 @@ export default class AddonModWorkshopAssessmentPage implements OnInit, OnDestroy
 
         const inputData = this.evaluateForm.value;
 
-        if (this.originalEvaluation.weight != inputData.weight) {
+        if (this.originalEvaluation.weight !== inputData.weight) {
             return true;
         }
 
         if (this.access && this.access.canoverridegrades) {
-            if (this.originalEvaluation.text != inputData.text) {
+            if ((this.originalEvaluation.text ?? '') !== (inputData.text ?? '')) {
                 return true;
             }
 
-            if (this.originalEvaluation.grade != inputData.grade) {
+            if (this.originalEvaluation.grade !== inputData.grade) {
                 return true;
             }
         }

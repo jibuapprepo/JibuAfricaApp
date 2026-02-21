@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component } from '@angular/core';
+import { Component, Type } from '@angular/core';
 import { CoreConstants } from '@/core/constants';
 import { CoreConfig } from '@services/config';
 import { CoreEvents } from '@singletons/events';
@@ -29,6 +29,7 @@ import { CoreAnalytics } from '@services/analytics';
 import { CoreNative } from '@features/native/services/native';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CoreEditorService } from '@features/editor/services/editor';
 
 /**
  * Page that displays the general settings.
@@ -37,7 +38,6 @@ import { CoreSharedModule } from '@/core/shared.module';
     selector: 'page-core-app-settings-general',
     templateUrl: 'general.html',
     styleUrl: 'general.scss',
-    standalone: true,
     imports: [
         CoreSharedModule,
     ],
@@ -49,7 +49,6 @@ export default class CoreSettingsGeneralPage {
     zoomLevels: { value: CoreZoomLevel; style: number; selected: boolean }[] = [];
     selectedZoomLevel = CoreZoomLevel.NONE;
     pinchToZoom = false;
-    richTextEditor = true;
     debugDisplay = false;
     analyticsAvailable = false;
     analyticsEnabled = false;
@@ -58,6 +57,8 @@ export default class CoreSettingsGeneralPage {
     colorSchemeDisabled = false;
     isAndroid = false;
     displayIframeHelp = false;
+
+    protected editorSettingsComponentClass?: Type<unknown>;
 
     constructor() {
         this.asyncInit();
@@ -106,7 +107,7 @@ export default class CoreSettingsGeneralPage {
 
         this.pinchToZoom = await CoreSettingsHelper.getPinchToZoom();
 
-        this.richTextEditor = await CoreConfig.get(CoreConstants.SETTINGS_RICH_TEXT_EDITOR, true);
+        this.editorSettingsComponentClass = await CoreEditorService.getSettingsComponentClass();
 
         this.debugDisplay = await CoreConfig.get(CoreConstants.SETTINGS_DEBUG_DISPLAY, false);
 
@@ -238,18 +239,6 @@ export default class CoreSettingsGeneralPage {
 
         CoreSettingsHelper.setColorScheme(this.selectedScheme);
         CoreConfig.set(CoreConstants.SETTINGS_COLOR_SCHEME, this.selectedScheme);
-    }
-
-    /**
-     * Called when the rich text editor is enabled or disabled.
-     *
-     * @param ev Event
-     */
-    richTextEditorChanged(ev: Event): void {
-        ev.stopPropagation();
-        ev.preventDefault();
-
-        CoreConfig.set(CoreConstants.SETTINGS_RICH_TEXT_EDITOR, this.richTextEditor ? 1 : 0);
     }
 
     /**

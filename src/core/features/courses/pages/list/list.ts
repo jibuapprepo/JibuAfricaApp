@@ -40,7 +40,6 @@ type CoreCoursesListMode = 'search' | 'all' | 'my';
 @Component({
     selector: 'page-core-courses-list',
     templateUrl: 'list.html',
-    standalone: true,
     imports: [
         CoreSharedModule,
         CoreMainMenuUserButtonComponent,
@@ -151,11 +150,12 @@ export default class CoreCoursesListPage implements OnInit, OnDestroy {
 
         const mode = CoreNavigator.getRouteParam<CoreCoursesListMode>('mode') || 'my';
 
-        if (mode == 'search') {
+        if (mode === 'search') {
             this.searchMode = true;
+            this.searchText = CoreNavigator.getRouteParam('searchText') || '';
         }
 
-        if (mode == 'my') {
+        if (mode === 'my') {
             this.showOnlyEnrolled = true;
         }
 
@@ -357,6 +357,7 @@ export default class CoreCoursesListPage implements OnInit, OnDestroy {
      */
     toggleEnrolled(): void {
         this.loaded = false;
+        this.searchPage = 0;
         this.fetchCourses();
     }
 

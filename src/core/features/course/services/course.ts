@@ -69,6 +69,8 @@ import { CoreCourseDownloadStatusHelper } from './course-download-status-helper'
 import { MAIN_MENU_HOME_PAGE_NAME } from '@features/mainmenu/constants';
 import { CORE_SITEHOME_PAGE_NAME } from '@features/sitehome/constants';
 import { CoreDom } from '@singletons/dom';
+import { CoreCourseModuleDelegate } from './module-delegate';
+import { ModFeature } from '@addons/mod/constants';
 
 export type CoreCourseProgressUpdated = { progress: number; courseId: number };
 
@@ -255,7 +257,7 @@ export class CoreCourseProvider {
             return false;
         }
 
-        return Number(CoreNavigator.getRouteParams(route).courseId) == courseId;
+        return Number(CoreNavigator.getRouteParams(route).courseId) === courseId;
     }
 
     /**
@@ -620,12 +622,17 @@ export class CoreCourseProvider {
             };
         }
 
+        const canDisplay = CoreCourseModuleDelegate.supportsFeature(module.modname, ModFeature.CAN_DISPLAY, true);
+
         return  {
             ...module,
             course: courseId,
             section: sectionId,
             completiondata: completionData,
             availabilityinfo: this.treatAvailablityInfo(module.availabilityinfo),
+            visible: canDisplay ? module.visible : 0,
+            uservisible: canDisplay ? module.uservisible : false,
+            visibleoncoursepage: canDisplay ? module.visibleoncoursepage : 0,
         };
     }
 
@@ -932,7 +939,7 @@ export class CoreCourseProvider {
         const subsectionsComponents = CoreArray.unique(subsections.map(section => (section.component ?? '').replace('mod_', '')));
 
         sections.forEach(section => {
-            // eslint-disable-next-line deprecation/deprecation
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
             section.contents = section.modules.map(module => {
                 if (!subsectionsComponents.includes(module.modname)) {
                     return module;

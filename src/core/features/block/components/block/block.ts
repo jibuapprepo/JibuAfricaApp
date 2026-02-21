@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, Input, ViewChild, OnDestroy, Type, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnDestroy, Type, OnChanges, SimpleChanges, viewChild } from '@angular/core';
 import { CoreBlockDelegate } from '../../services/block-delegate';
 import { CoreDynamicComponent } from '@components/dynamic-component/dynamic-component';
 import { Subscription } from 'rxjs';
@@ -28,14 +28,13 @@ import { CoreSharedModule } from '@/core/shared.module';
     selector: 'core-block',
     templateUrl: 'core-block.html',
     styleUrl: 'block.scss',
-    standalone: true,
     imports: [
         CoreSharedModule,
     ],
 })
 export class CoreBlockComponent implements OnChanges, OnDestroy {
 
-    @ViewChild(CoreDynamicComponent) dynamicComponent?: CoreDynamicComponent<ICoreBlockComponent>;
+    readonly dynamicComponent = viewChild<CoreDynamicComponent<ICoreBlockComponent>>(CoreDynamicComponent);
 
     @Input({ required: true }) block!: CoreCourseBlock; // The block to render.
     @Input({ required: true }) contextLevel!: ContextLevel; // The context where the block will be used.
@@ -119,9 +118,7 @@ export class CoreBlockComponent implements OnChanges, OnDestroy {
      * @returns Promise resolved when done.
      */
     async invalidate(): Promise<void> {
-        if (this.dynamicComponent) {
-            await this.dynamicComponent.callComponentMethod('invalidateContent');
-        }
+        await this.dynamicComponent()?.callComponentMethod('invalidateContent');
     }
 
 }

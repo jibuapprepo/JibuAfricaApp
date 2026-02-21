@@ -326,7 +326,7 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
 
         const submission = AddonModAssign.getSubmissionObjectFromAttempt(assign, status.lastattempt);
 
-        if (submission && submission.timemodified != offlineData.onlinetimemodified) {
+        if (submission && submission.timemodified !== offlineData.onlinetimemodified) {
             // The submission was modified in Moodle, discard the submission.
             this.addOfflineDataDeletedWarning(
                 warnings,
@@ -338,24 +338,28 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
         }
 
         try {
-            if (Object.keys(offlineData.plugindata).length == 0) {
+            // In case no plugin data and no submission statement (true or false) the submission has been removed.
+            if (Object.keys(offlineData.plugindata).length === 0 &&
+                (offlineData.submissionstatement === undefined || offlineData.submissionstatement === null)) {
                 await AddonModAssign.removeSubmissionOnline(assign.id, offlineData.userid, siteId);
             } else {
-                if (submission?.plugins) {
-                    // Prepare plugins data.
-                    await Promise.all(submission.plugins.map((plugin) =>
-                        AddonModAssignSubmissionDelegate.preparePluginSyncData(
-                            assign,
-                            submission,
-                            plugin,
-                            offlineData,
-                            pluginData,
-                            siteId,
-                        )));
-                }
+                if (Object.keys(offlineData.plugindata).length > 0) {
+                    if (submission?.plugins) {
+                        // Prepare plugins data.
+                        await Promise.all(submission.plugins.map((plugin) =>
+                            AddonModAssignSubmissionDelegate.preparePluginSyncData(
+                                assign,
+                                submission,
+                                plugin,
+                                offlineData,
+                                pluginData,
+                                siteId,
+                            )));
+                    }
 
-                // Now save the submission.
-                await AddonModAssign.saveSubmissionOnline(assign.id, pluginData, siteId);
+                    // Now save the submission.
+                    await AddonModAssign.saveSubmissionOnline(assign.id, pluginData, siteId);
+                }
 
                 if (assign.submissiondrafts && offlineData.submitted) {
                     // The user submitted the assign manually. Submit it for grading.
@@ -509,7 +513,7 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
             let promises: Promise<void | AddonModAssignGetSubmissionStatusWSResponse>[] = [];
             if (status.feedback && status.feedback.plugins) {
                 promises = status.feedback.plugins.map((plugin) =>
-                    // eslint-disable-next-line deprecation/deprecation
+                    // eslint-disable-next-line @typescript-eslint/no-deprecated
                     AddonModAssignFeedbackDelegate.discardPluginFeedbackData(assign.id, userId, plugin, siteId));
             }
 

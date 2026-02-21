@@ -147,7 +147,7 @@ export class CoreLangProvider {
 
         // Use Translate.getTranslation to read the translations from the file and store them in the translations variable.
         return new Promise(resolve => CoreSubscriptions.once(
-            Translate.getTranslation(lang),
+            Translate.currentLoader.getTranslation(lang),
             messages => resolve(messages),
             () => resolve({}),
         ));
@@ -229,6 +229,16 @@ export class CoreLangProvider {
         try {
             await import('dayjs/locale/' + locale);
             dayjs.locale(locale);
+
+            if (CorePlatform.isAutomated()) {
+                // Fix short names for automated tests to match the ones used in LMS. E.g. DayJS uses 'Jun' instead of 'June'.
+                dayjs.updateLocale('en-gb', {
+                    monthsShort: [
+                        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'June',
+                        'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec',
+                    ],
+                });
+            }
         } catch {
             if (locale === 'en' || locale === 'en-gb') {
                 return;
@@ -422,7 +432,7 @@ export class CoreLangProvider {
     getTranslationTable(lang: string): Promise<Record<string, unknown>> {
         // Create a promise to convert the observable into a promise.
         return new Promise((resolve, reject): void => {
-            const observer = Translate.getTranslation(lang).subscribe({
+            const observer = Translate.currentLoader.getTranslation(lang).subscribe({
                 next: (table) => {
                     resolve(table);
                     observer.unsubscribe();

@@ -146,6 +146,7 @@ export class CoreTime {
         ];
         if (CorePlatform.isAutomated()) {
             plugins.push(import('dayjs/plugin/timezone'));
+            plugins.push(import('dayjs/plugin/updateLocale'));
         }
 
         const result = await Promise.all(plugins);
@@ -498,6 +499,32 @@ export class CoreTime {
      */
     static getDatetimeDefaultMin(): string {
         return String(dayjs().year() - 20);
+    }
+
+    /**
+     * Formats the timestamp as a relative date string (e.g., "Today", "Yesterday", "Tomorrow"). If timestamp isn't close enough
+     * to be a relative date, it returns null.
+     *
+     * @returns Formatted date, or null if not a close date.
+     */
+    static formatRelativeDate(timestamp: number): string | null {
+        const date = dayjs(timestamp);
+        const today = dayjs();
+        let langString: string | null = null;
+
+        if (date.isSame(today, 'day')) {
+            langString = 'timerelativetoday';
+        } else if (date.isSame(today.subtract(1, 'days'), 'day')) {
+            langString = 'timerelativeyesterday';
+        } else if (date.isSame(today.add(1, 'days'), 'day')) {
+            langString = 'timerelativetomorrow';
+        }
+
+        if (langString === null) {
+            return null;
+        }
+
+        return Translate.instant(`core.${langString}`, { $a: CoreTime.userDate(timestamp, 'core.strftimedateshort') });
     }
 
 }

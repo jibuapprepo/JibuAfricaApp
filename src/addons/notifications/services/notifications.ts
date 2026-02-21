@@ -91,7 +91,7 @@ export class AddonNotificationsProvider {
         }
 
         const notificationMessage: AddonNotificationsNotificationMessage = {
-            id: notification.savedmessageid || notification.id || 0,
+            id: Number(notification.savedmessageid) || notification.id || 0,
             useridfrom: notification.userfromid ? Number(notification.userfromid) : CORE_USER_NOREPLY_USER,
             userfromfullname: notification.userfromfullname ?? Translate.instant('core.noreplyname'),
             useridto: notification.usertoid ? Number(notification.usertoid) : (siteInfo?.userid ?? 0),
@@ -348,7 +348,11 @@ export class AddonNotificationsProvider {
             useridto: CoreSites.getCurrentSiteUserId(),
         };
 
-        return site.write<boolean>('core_message_mark_all_notifications_as_read', params);
+        const preSets: CoreSiteWSPreSets = {
+            typeExpected: 'boolean',
+        };
+
+        return site.write<boolean>('core_message_mark_all_notifications_as_read', params, preSets);
     }
 
     /**
